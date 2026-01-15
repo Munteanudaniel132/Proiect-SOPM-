@@ -20,8 +20,6 @@ export const Login = ({ onClose }) => {
       // Dacă autentificarea reușește, închide fereastra/modalul
       if (onClose) onClose();
     } catch (err) {
-      // Afișează eroarea primită de la Firebase
-      // Am simplificat afișarea erorii pentru a fi mai user-friendly
       setError(err.message.replace('Firebase: Error (auth/', '').replace(/\)\./g, '').replace(/-/g, ' '));
     }
   };

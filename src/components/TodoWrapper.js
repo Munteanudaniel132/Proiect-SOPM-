@@ -7,10 +7,21 @@ import { EditTodoForm } from "./EditTodoForm";
 export const TodoWrapper = () => {
   const [todos, setTodos] = useState([]);
 
-  const addTodo = (todo) => {
+  // MODIFICARE: Verifică dacă dueDate este un șir gol și îl convertește la null
+  const addTodo = (task, dueDate) => { 
+    // Converteste șirul gol ("") sau nedefinit la null
+    const finalDueDate = dueDate && dueDate.trim() !== "" ? dueDate : null; 
+
     setTodos([
       ...todos,
-      { id: uuidv4(), task: todo, completed: false, isEditing: false },
+      { 
+        id: uuidv4(), 
+        task: task, 
+        completed: false, 
+        isEditing: false,
+        priority: false, 
+        dueDate: finalDueDate // <-- SALVEAZĂ VALOAREA CORECTATĂ (data sau null)
+      },
     ]);
   }
 
@@ -20,6 +31,14 @@ export const TodoWrapper = () => {
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    );
+  }
+
+  const togglePriority = (id) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, priority: !todo.priority } : todo
       )
     );
   }
@@ -40,10 +59,25 @@ export const TodoWrapper = () => {
     );
   };
 
+  const handleLogout = () => {
+      alert("Te-ai delogat cu succes!"); 
+  };
+
   return (
     <div className="TodoWrapper">
-      <h1>Get Things Done !</h1>
+      
+      <div className="todo-header">
+        <h1>
+          📜 Todo-urile lui dani.munt
+        </h1>
+        
+        <button className="delogare-btn" onClick={handleLogout}>
+          ➡️ DELOGARE
+        </button>
+      </div>
+
       <TodoForm addTodo={addTodo} />
+      
       {/* display todos */}
       {todos.map((todo) =>
         todo.isEditing ? (
@@ -55,6 +89,7 @@ export const TodoWrapper = () => {
             deleteTodo={deleteTodo}
             editTodo={editTodo}
             toggleComplete={toggleComplete}
+            togglePriority={togglePriority} 
           />
         )
       )}

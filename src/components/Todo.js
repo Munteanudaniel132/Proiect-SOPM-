@@ -1,97 +1,120 @@
 // src/components/Todo.js
-import React from "react";
-// Importuri Material UI
-import { ListItem, ListItemText, IconButton, Checkbox, Box, Paper, Tooltip } from '@mui/material';
+import React from "react"; 
+import { ListItem, ListItemText, IconButton, Checkbox, Box, Paper, Tooltip, Typography } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 
-// Notă: Nu mai avem nevoie de importurile Font Awesome!
+// Functie pentru gradient taskuri
+const getTaskGradient = (task) => {
+    const now = new Date();
+    const start = task.startDate?.toDate ? task.startDate.toDate() : new Date(task.startDate);
+    const end = task.endDate?.toDate ? task.endDate.toDate() : new Date(task.endDate);
+    const completedAt = task.completedAt?.toDate ? task.completedAt.toDate() : task.completedAt;
+
+    if (task.completed && completedAt && completedAt <= end) {
+        return 'linear-gradient(135deg, #66BB6A, #388E3C)'; // verde intens
+    }
+
+    if (!task.completed && now > end) {
+        return 'linear-gradient(135deg, #EF5350, #C62828)'; // roșu intens
+    }
+
+    if (!task.completed && now >= start && now <= end) {
+        return 'linear-gradient(135deg, #FFEB3B, #FBC02D)'; // galben vibrant
+    }
+
+    return 'linear-gradient(135deg, #E0E0E0, #BDBDBD)'; // gri
+};
 
 export const Todo = ({ task, deleteTodo, editTodo, toggleComplete, togglePriority }) => {
-
-    const listItemStyles = {
-        // Stil de bază pentru fiecare element de listă
-        mb: 1.5,
-        p: 1.5,
-        borderRadius: 1,
-        borderLeft: task.priority ? '6px solid #FFC107' : '1px solid #e0e0e0', // Bandă laterală pentru prioritate
-        
-        // Culoarea și stilul textului dacă este completat
-        textDecoration: task.completed ? 'line-through' : 'none',
-        color: task.completed ? '#757575' : 'inherit',
-        bgcolor: task.completed ? '#f5f5f5' : 'white',
-        
-        // Efect la hover
-        '&:hover': {
-            bgcolor: task.completed ? '#e0e0e0' : '#f0f0f0',
-        },
-    };
+    const bgGradient = getTaskGradient(task);
 
     return (
-        // Paper oferă un efect de card/elevare
-        <Paper elevation={1}>
+        <Paper
+            elevation={4}
+            sx={{
+                mb: 2,
+                borderRadius: 2,
+                overflow: 'hidden',
+                background: bgGradient,
+                color: '#fff',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+            }}
+        >
             <ListItem
                 secondaryAction={
-                    // Box-ul grupează butoanele de acțiune (dreapta)
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
-                        
-                        {/* Buton Priority */}
                         <Tooltip title={task.priority ? "Marchează ca normal" : "Marchează ca prioritar"}>
                             <IconButton 
                                 onClick={() => togglePriority(task.id)}
                                 aria-label="toggle-priority"
-                                color={task.priority ? "warning" : "default"} // Culoare galbenă pentru prioritate
+                                color="inherit" 
                                 size="small"
                             >
                                 {task.priority ? <StarIcon /> : <StarBorderIcon />}
                             </IconButton>
                         </Tooltip>
 
-                        {/* Buton Edit */}
                         <Tooltip title="Editează sarcina">
                             <IconButton 
                                 edge="end" 
                                 aria-label="edit" 
                                 onClick={() => editTodo(task.id)}
+                                color="inherit"
                                 size="small"
                             >
                                 <EditIcon />
                             </IconButton>
                         </Tooltip>
-                        
-                        {/* Buton Delete */}
+
                         <Tooltip title="Șterge sarcina">
                             <IconButton 
                                 edge="end" 
                                 aria-label="delete" 
                                 onClick={() => deleteTodo(task.id)} 
-                                color="error" // Culoare roșie
+                                color="inherit"
                                 size="small"
                             >
                                 <DeleteIcon />
                             </IconButton>
                         </Tooltip>
-
                     </Box>
                 }
-                sx={listItemStyles}
             >
-                {/* Checkbox pentru completare */}
                 <Checkbox
                     edge="start"
                     checked={task.completed}
                     tabIndex={-1}
                     disableRipple
                     onClick={() => toggleComplete(task.id)}
+                    sx={{ color: '#fff' }}
                 />
 
-                {/* Textul sarcinii */}
                 <ListItemText 
-                    primary={task.task} 
-                    onClick={() => toggleComplete(task.id)}
-                    sx={{ cursor: 'pointer', mr: 2 }} 
+                    primary={
+                        <Typography 
+                            variant="body1" 
+                            sx={{ 
+                                textDecoration: task.completed ? 'line-through' : 'none',
+                                fontWeight: 600,
+                                color: '#fff'
+                            }}
+                        >
+                            {task.task}
+                        </Typography>
+                    }
+                    secondary={
+                        <Box sx={{ mt: 0.5, display: 'flex', gap: 1 }}>
+                            <Typography variant="caption">
+                                Start: {new Date(task.startDate?.toDate ? task.startDate.toDate() : task.startDate).toLocaleDateString()}
+                            </Typography>
+                            <Typography variant="caption">
+                                – Deadline: {new Date(task.endDate?.toDate ? task.endDate.toDate() : task.endDate).toLocaleDateString()}
+                            </Typography>
+                        </Box>
+                    }
                 />
             </ListItem>
         </Paper>

@@ -27,7 +27,7 @@ export const Register = ({ onClose }) => {
 
   return (
     <Box
-      // Box-ul este elementul rădăcină (în loc de Container)
+
       sx={{
           display: 'flex',
           flexDirection: 'column',
@@ -69,7 +69,7 @@ export const Register = ({ onClose }) => {
             type="submit"
             fullWidth
             variant="contained"
-            color="secondary" // Culoare diferită pentru a distinge de Login
+            color="secondary" 
             sx={{ mt: 3, mb: 2 }}
           >
             Creare Cont

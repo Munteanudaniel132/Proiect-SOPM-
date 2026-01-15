@@ -4,7 +4,7 @@ import { TodoForm } from "./TodoForm";
 import { Todo } from "./Todo";
 import { EditTodoForm } from "./EditTodoForm";
 import { useAuth } from "../contexts/AuthContext";
-import { auth, db } from "../firebase"; // Asigură-te că db este exportat din firebase.js
+import { auth, db } from "../firebase"; 
 import { signOut } from "firebase/auth";
 import {
   collection,
@@ -19,7 +19,7 @@ import {
 } from "firebase/firestore";
 
 // Importuri Material UI
-import { Container, Box, Typography, Button, Paper, CircularProgress, Alert } from '@mui/material';
+import { Container, Box, Typography, Button, CircularProgress, Alert } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 
 export const TodoWrapperFirebase = () => {
@@ -42,9 +42,9 @@ export const TodoWrapperFirebase = () => {
     const unsubscribe = onSnapshot(q, snapshot => {
       const items = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() }));
       setTodos(items);
-      setLoading(false); // S-a terminat încărcarea
+      setLoading(false); 
     }, err => {
-      console.error("onSnapshot error:", err);
+      console.error("--- EROARE CRITICĂ FIRESTORE (Real):", err);
       setError("Eroare la încărcarea sarcinilor.");
       setLoading(false);
     });
@@ -52,15 +52,20 @@ export const TodoWrapperFirebase = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
-  const addTodo = async (taskText) => {
-    // Logica ta de adăugare rămâne neschimbată...
-    if (!currentUser || !taskText.trim()) return; // Adăugat verificare taskText
+  // ==================== FUNCȚII TODO ====================
+  const addTodo = async (taskText, startDate, endDate) => {
+    if (!currentUser || !taskText.trim() || !startDate || !endDate) return;
+
     const todosColRef = collection(db, "users", currentUser.uid, "todos");
+
     try {
       await addDoc(todosColRef, {
         task: taskText,
         completed: false,
         priority: false,
+        startDate,
+        endDate,
+        completedAt: null,
         createdAt: serverTimestamp()
       });
     } catch (err) {
@@ -69,8 +74,24 @@ export const TodoWrapperFirebase = () => {
     }
   };
 
+  const toggleComplete = async (id) => {
+    if (!currentUser) return;
+    const docRef = doc(db, "users", currentUser.uid, "todos", id);
+    const target = todos.find(t => t.id === id);
+    if (!target) return;
+
+    try {
+      await updateDoc(docRef, {
+        completed: !target.completed,
+        completedAt: !target.completed ? new Date() : null
+      });
+    } catch (err) {
+      console.error("Toggle complete failed:", err);
+      setError("Eroare la marcarea sarcinii.");
+    }
+  };
+
   const deleteTodo = async (id) => {
-    // Logica ta de ștergere rămâne neschimbată...
     if (!currentUser) return;
     const docRef = doc(db, "users", currentUser.uid, "todos", id);
     try {
@@ -81,22 +102,7 @@ export const TodoWrapperFirebase = () => {
     }
   };
 
-  const toggleComplete = async (id) => {
-    // Logica ta de toggle complete rămâne neschimbată...
-    if (!currentUser) return;
-    const docRef = doc(db, "users", currentUser.uid, "todos", id);
-    const target = todos.find(t => t.id === id);
-    if (!target) return;
-    try {
-      await updateDoc(docRef, { completed: !target.completed });
-    } catch (err) {
-      console.error("Toggle complete failed:", err);
-      setError("Eroare la marcarea sarcinii.");
-    }
-  };
-
   const togglePriority = async (id) => {
-    // Logica ta de toggle priority rămâne neschimbată...
     if (!currentUser) return;
     const docRef = doc(db, "users", currentUser.uid, "todos", id);
     const target = todos.find(t => t.id === id);
@@ -109,16 +115,14 @@ export const TodoWrapperFirebase = () => {
     }
   };
 
-  const startEdit = (id) => {
-    setEditingId(id);
-  };
+  const startEdit = (id) => setEditingId(id);
 
-  const editTodo = async (id, newTask) => {
-    // Logica ta de editare rămâne neschimbată...
-    if (!currentUser || !newTask.trim()) return;
+  // SCHIMBARE AICI: Acum acceptă updatedFields (inclusiv task, startDate, endDate)
+  const editTodo = async (id, updatedFields) => {
+    if (!currentUser || !updatedFields.task.trim()) return;
     const docRef = doc(db, "users", currentUser.uid, "todos", id);
     try {
-      await updateDoc(docRef, { task: newTask });
+      await updateDoc(docRef, updatedFields); // Trimite tot obiectul de actualizare
       setEditingId(null);
     } catch (err) {
       console.error("Edit failed:", err);
@@ -135,7 +139,7 @@ export const TodoWrapperFirebase = () => {
     }
   };
 
-  // Starea de încărcare (Loading)
+  // Loading și eroare
   if (loading) {
     return (
       <Container maxWidth="sm" sx={{ mt: 10, textAlign: 'center' }}>
@@ -144,8 +148,7 @@ export const TodoWrapperFirebase = () => {
       </Container>
     );
   }
-  
-  // Mesaj de eroare
+
   if (error) {
     return (
       <Container maxWidth="sm" sx={{ mt: 10 }}>
@@ -154,38 +157,53 @@ export const TodoWrapperFirebase = () => {
     );
   }
 
-  // Interfața principală a listei de sarcini
+  // Interfața principală
   return (
-    <Container component="main" maxWidth="md" sx={{ mt: 5 }}>
-      {/* Header și buton Logout */}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #FF8A65, #FFB74D, #4DD0E1, #BA68C8)',
+        paddingTop: 6,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}
+    >
       <Box
         sx={{
+          width: '90%',
+          maxWidth: 700,
+          mb: 4,
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center',
-          mb: 3
+          alignItems: 'center'
         }}
       >
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
-          📋 Todo-urile lui {currentUser.email.split('@')[0]}
+        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: '#fff' }}>
+          📋 Todo-urile lui {currentUser?.email?.split('@')[0] || 'Utilizator'}
         </Typography>
         <Button
           variant="outlined"
-          color="error"
+          color="inherit"
           onClick={logout}
           startIcon={<LogoutIcon />}
+          sx={{
+            borderColor: '#fff',
+            color: '#fff',
+            '&:hover': { backgroundColor: 'rgba(255,255,255,0.2)' }
+          }}
         >
           Delogare
         </Button>
       </Box>
 
-      {/* Formularul de Adăugare Task */}
-      <Paper elevation={3} sx={{ p: 2, mb: 4, borderRadius: 2 }}>
+      {/* Formularul de adăugare taskuri */}
+      <Box sx={{ width: '90%', maxWidth: 700, mb: 4 }}>
         <TodoForm addTodo={addTodo} />
-      </Paper>
+      </Box>
 
-      {/* Lista de Task-uri */}
-      <Box className="todo-list">
+      {/* Lista taskuri */}
+      <Box sx={{ width: '90%', maxWidth: 700 }}>
         {todos.length === 0 && (
           <Alert severity="info" sx={{ mt: 2 }}>
             🎉 Felicitări! Nu ai sarcini active. Adaugă una mai sus!
@@ -193,7 +211,12 @@ export const TodoWrapperFirebase = () => {
         )}
         {todos.map(todo =>
           editingId === todo.id ? (
-            <EditTodoForm key={todo.id} todo={todo} editTodo={editTodo} cancel={() => setEditingId(null)} />
+            <EditTodoForm 
+                key={todo.id} 
+                todo={todo} 
+                editTodo={editTodo} 
+                cancel={() => setEditingId(null)} 
+            />
           ) : (
             <Todo
               key={todo.id}
@@ -206,6 +229,6 @@ export const TodoWrapperFirebase = () => {
           )
         )}
       </Box>
-    </Container>
+    </Box>
   );
 };
